@@ -165,7 +165,6 @@ Screenshots live in the `screenshots/` folder and cover:
 - `docker ps` / `docker compose ps` showing both containers healthy
 - The live application in the browser, with chat working end-to-end
 
-*(Add the images to `screenshots/` and reference them here, e.g. `![Containers running](screenshots/docker-ps.png)`.)*
 
 ## Future improvements
 
