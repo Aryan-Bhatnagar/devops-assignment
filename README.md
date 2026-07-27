@@ -39,9 +39,7 @@ Given a starter chat application with intentional configuration gaps, the goals 
 
 ## Architecture
 
-```
 ![image alt](https://github.com/Aryan-Bhatnagar/devops-assignment/blob/3eda4cd492bd0d20321a4faa69da9f4924b8b40f/devops_deployment_architecture.png)
-```
 
 Nginx is the only container with a published port (`80:80`). It serves the static frontend directly from disk and reverse-proxies `/ws` WebSocket traffic to the FastAPI backend container over the internal Docker network. The backend container has no published port — it's reachable only from other containers on `devops-assignment_default`.
 
