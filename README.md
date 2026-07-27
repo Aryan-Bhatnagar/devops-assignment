@@ -15,6 +15,7 @@ A real-time chat application deployed with Docker, served through Nginx, and shi
 ## Table of contents
 
 - [Project overview](#project-overview)
+- [Key features](#key-features)
 - [Assignment objective](#assignment-objective)
 - [Architecture](#architecture)
 - [Tech stack](#tech-stack)
@@ -27,12 +28,22 @@ A real-time chat application deployed with Docker, served through Nginx, and shi
 - [CI/CD with GitHub Actions](#cicd-with-github-actions)
 - [Screenshots](#screenshots)
 - [Future improvements](#future-improvements)
+- [License](#license)
 
 ---
 
 ## Project overview
 
 This project takes a broken real-time chat application (FastAPI backend + static frontend) and turns it into a properly containerized, reverse-proxied, and automatically deployed service running on AWS EC2.
+
+## Key features
+
+- Dockerized multi-container application
+- Reverse proxy using Nginx
+- WebSocket support for real-time messaging
+- GitHub Actions CI/CD pipeline
+- AWS EC2 deployment with Elastic IP
+- Automatic redeployment on every push to `main`
 
 ## Assignment objective
 
@@ -45,7 +56,7 @@ Given a starter chat application with intentional configuration gaps, the goals 
 
 ## Architecture
 
-![image alt](https://github.com/Aryan-Bhatnagar/devops-assignment/blob/3eda4cd492bd0d20321a4faa69da9f4924b8b40f/devops_deployment_architecture.png)
+![Architecture diagram](screenshots/devops_deployment_architecture.png)
 
 Nginx is the only container with a published port (`80:80`). It serves the static frontend directly from disk and reverse-proxies `/ws` WebSocket traffic to the FastAPI backend container over the internal Docker network. The backend container has no published port — it's reachable only from other containers on `devops-assignment_default`.
 
@@ -70,6 +81,7 @@ devops-assignment/
 │   ├── main.py              # FastAPI application
 │   └── requirements.txt
 ├── frontend/                 # Static chat UI served by Nginx
+├── screenshots/               # README screenshots
 ├── Dockerfile                # Backend image build
 ├── docker-compose.yml        # Backend + Nginx services
 ├── nginx.conf                 # Reverse proxy + static file config
@@ -87,12 +99,18 @@ Two services are defined in `docker-compose.yml`:
 
 Both services restart automatically (`restart: always`) and share the default Compose bridge network, so the Nginx container can reach the backend by its service name (`chat-backend`) without any manual network configuration.
 
+![Dockerfile fix](screenshots/07-dockerfile-fix.png)
+![Compose fix](screenshots/08-compose-fix.png)
+
 ## Networking
 
 - Docker Compose creates an isolated bridge network (`devops-assignment_default`) so the two containers can resolve each other by container name.
 - Nginx listens on `0.0.0.0:80`, mapped to the EC2 instance's public interface.
 - WebSocket upgrade headers (`Upgrade`, `Connection: Upgrade`) are explicitly set in the `/ws` location block so the proxy doesn't fall back to plain HTTP.
 - The AWS security group for the EC2 instance allows inbound traffic on port 80 (HTTP) and 22 (SSH).
+
+![Nginx fix](screenshots/09-nginx-fix.png)
+![WebSocket chat working](screenshots/10-websocket-chat-working.png)
 
 ## Issues identified
 
@@ -111,22 +129,31 @@ The starter project had several gaps that prevented it from running out of the b
 - Added a `.dockerignore` to keep build context small.
 - Wrote a GitHub Actions workflow that SSHes into the EC2 instance and redeploys on every push to `main`.
 
+![Docker build success](screenshots/03-docker-build-success.png)
+![Containers running](screenshots/06-running-containers.png)
+
 ## Deployment steps
 
-1. **Provision the server** — launch an AWS EC2 instance (Ubuntu 24.04), attach an Elastic IP, and open ports 22 and 80 in the security group.
-2. **Install Docker** on the instance (`docker` + `docker compose` plugin).
-3. **Clone the repository** into `/var/www/devops-assignment`.
-4. **Build and run**:
+1. **Provision the server** — launch an AWS EC2 instance (Ubuntu 24.04), attach an Elastic IP.
+2. **Configure the security group** to allow inbound traffic on:
+   - TCP 22 (SSH)
+   - TCP 80 (HTTP)
+3. **Install Docker** on the instance (`docker` + `docker compose` plugin).
+4. **Clone the repository** into `/var/www/devops-assignment`.
+5. **Build and run**:
    ```bash
    docker compose up -d --build
    ```
-5. **Verify**:
+6. **Verify**:
    ```bash
    docker compose ps
    docker logs chat-backend
    docker logs chat-nginx
    ```
-6. **Confirm public access** at `http://<elastic-ip>`.
+7. **Confirm public access** at `http://<elastic-ip>`.
+
+![EC2 instance](screenshots/11-ec2-instance.png)
+![Repository cloned](screenshots/13-repository-cloned.png)
 
 ## CI/CD with GitHub Actions
 
@@ -138,16 +165,27 @@ A workflow in `.github/workflows/` triggers on every push to `main`:
 
 This means any change pushed to `main` is live on the server within a couple of minutes, with no manual steps.
 
+![GitHub Actions secrets](screenshots/18-github-secrets.png)
+![GitHub Actions running](screenshots/19-actions-running.png)
+
 ## Screenshots
 
-Screenshots live in the `screenshots/` folder and cover:
+### Repository
 
-- Repository structure
-- `docker compose up --build` output
-- Successful GitHub Actions run
-- `docker ps` / `docker compose ps` showing both containers healthy
-- The live application in the browser, with chat working end-to-end
+![Repository structure](screenshots/17-ec2-project.png)
 
+### Docker containers
+
+![Containers running](screenshots/14-containers-running.png)
+
+### GitHub Actions
+
+![Actions success](screenshots/19-actions-running.png)
+
+### Live application
+
+![Live website](screenshots/15-live-website_tab1.png)
+![Chat working](screenshots/15-live-website_tab2.png)
 
 ## Future improvements
 
@@ -155,3 +193,7 @@ Screenshots live in the `screenshots/` folder and cover:
 - Add a health-check endpoint and Docker `HEALTHCHECK` directives for both containers.
 - Persist chat history in a database instead of in-memory state.
 - Add automated tests to the GitHub Actions workflow before deployment.
+
+## License
+
+This repository was created for the Spotsure Biz DevOps Assignment.
